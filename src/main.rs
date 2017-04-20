@@ -14,7 +14,8 @@ fn main() {
   let child = thread::spawn(|| {
     let mut counter = 0;
     loop {
-      show_process_running();
+      //show_process_running();
+      show_all_processes();
       counter += 1;
       if counter == 1 {
         break;
@@ -43,5 +44,17 @@ fn show_process_running() {
     }
 
     println!("There are {} process(s)", process_count);
+  }
+}
+
+fn show_all_processes() {
+  if let  Ok(mut processes) = process::Process::get_processes() {
+    println!("running processes {}", processes.len());
+    while let Some(process) = processes.pop() {
+      println!("{}: {} [{}]"
+          , process.get_process_id()
+          , process.get_name().unwrap()
+          , process.get_location().unwrap_or("".to_string()));
+    }
   }
 }

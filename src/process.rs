@@ -11,6 +11,7 @@ use std::string::String;
 use std::vec::{Vec};
 
 use self::winapi::shlobj::INVALID_HANDLE_VALUE;
+use self::winapi::winerror::ERROR_NO_MORE_FILES;
 use self::winapi::tlhelp32::{PROCESSENTRY32W
                              , MODULEENTRY32W
                              , MAX_MODULE_NAME32};
@@ -54,21 +55,40 @@ impl Process {
     vec.push(first_process);
     println!("got first");
 
-    while let Ok(next_process) = Process::get_next(handle) {
-      vec.push(next_process);
-      println!("got next");
+    loop {
+      let next_process = Process::get_next(handle);
+      match next_process {
+        Ok(opt_process) => {
+          if let Some(process) = opt_process {
+            vec.push(process);
+          } else { break; }
+        },
+        Err(error) => println!("{:?}", error),
+      }
     }
+
+//    while let Ok(next_process) = Process::get_next(handle) {
+//      vec.push(next_process);
+//      println!("got next");
+//    }
     println!("process retrieved {}", vec.len());
     //close the handle at OS side
     Process::close_handle(handle);
     return Ok(vec);
   }
-  fn get_next(snapshot_handle: HANDLE) -> Result<Process, String> {
+  fn get_next(snapshot_handle: HANDLE) -> Result<Option<Process>, String> {
     let mut win_process_entry = Process::create_new_process_entry();
     {
       let mut_win_process_entry = &mut win_process_entry;
       let return_state = unsafe { kernel32::Process32NextW(snapshot_handle, mut_win_process_entry) };
       if return_state == FALSE {
+        let last_error = Error::last_os_error();
+        if let Some(raw_error) = last_error.raw_os_error() {
+          if raw_error == ERROR_NO_MORE_FILES as i32 {
+            println!("No more processes");
+            return Ok(None);
+          }
+        }
         return Err(format!("Could not retrieve next process entry: {:?}"
                            , Error::last_os_error()));
       }
@@ -78,7 +98,7 @@ impl Process {
     let module = try!(Process::get_main_module(&win_process_entry.th32ProcessID));
     println!("process module retrieved");
 
-    Ok(Process::new(win_process_entry, module))
+    Ok(Some(Process::new(win_process_entry, module)))
   }
   fn get_first() -> Result<(HANDLE, Process), String> {
     let snapshot_handle = unsafe { kernel32::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) };

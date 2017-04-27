@@ -1,12 +1,10 @@
 extern crate winapi;
 extern crate kernel32;
 
-use std::ffi::OsString;
 use std::io::{Error};
 use std::mem;
 use std::ptr;
 use std::os::windows::raw::HANDLE;
-use std::os::windows::ffi::OsStringExt;
 use std::string::String;
 use std::vec::{Vec};
 
@@ -21,6 +19,7 @@ use self::winapi::minwindef::{DWORD
 use self::winapi::tlhelp32::{TH32CS_SNAPPROCESS
                              , TH32CS_SNAPMODULE32
                              , TH32CS_SNAPMODULE};
+use super::helper;
 
 const INITIAL_PROCESS_VECTOR_SIZE: u32 = 20;
 
@@ -199,7 +198,7 @@ impl Process {
   }
   pub fn get_name(&self) -> Result<String, String> {
     let name = self.win_process_entry.szExeFile;
-    get_string_from_wide(&name)
+    helper::get_string_from_wide(&name)
     //    let exe_name : OsString = OsString::from_wide(name.iter()
     //        .position(|c| *c == 0)
     //        .map(|i| &name[..i])
@@ -209,17 +208,7 @@ impl Process {
     //      .or(Err("Could not retrieve process name".to_string()))
   }
   pub fn get_location(&self) -> Result<String, String> {
-    get_string_from_wide(&self.main_module.szExePath)
+    helper::get_string_from_wide(&self.main_module.szExePath)
   }
 }
 
-fn get_string_from_wide(wide_array: &[u16]) -> Result<String, String> {
-  let trimmed_wide = wide_array.iter()
-    .position(|char| *char == 0)
-    .map(|i| &wide_array[..i])
-    .unwrap_or(wide_array);
-  let os_str = OsString::from_wide(trimmed_wide);
-
-  os_str.into_string()
-    .or(Err("Could not convert `OsString` to `String`".to_string()))
-}

@@ -1,14 +1,13 @@
+extern crate procmon;
+
 use std::{thread};
 use std::path::PathBuf;
 
 //static PROCESS_TO_KEEP: &'static str = "C:\\Users\\nmestaoui\\Desktop\\tester\\bin\\Debug\\tester.exe";
 
-mod process_entry;
-mod process_iterator;
-mod toolhelp_32_snapshot_handle;
-mod process;
+use procmon::process::process:: { Process };
+//mod process;
 
-use process_iterator::ProcessIterator;
 
 fn main() {
   let child = thread::spawn(|| {
@@ -29,26 +28,9 @@ fn main() {
   }
 }
 
-fn show_process_running() {
-  let res_process_iterator = ProcessIterator::new();
-  if let Ok(mut process_iterator) = res_process_iterator {
-    let mut process_count = 0;
-    while let Some(res_process_entry) = process_iterator.next() {
-      if let Ok(process) = res_process_entry {
-        process_count += 1;
-        let process_path : PathBuf = process.executable_name();
-        if let Some(process_path_str) = process_path.to_str() {
-          println!("{}: {}", process.process_id(), process_path_str);
-        }
-      }
-    }
-
-    println!("There are {} process(s)", process_count);
-  }
-}
 
 fn show_all_processes() {
-  if let  Ok(mut processes) = process::Process::get_processes() {
+  if let  Ok(mut processes) = Process::get_processes() {
     println!("running processes {}", processes.len());
     while let Some(process) = processes.pop() {
       println!("{}: {} [{}]"

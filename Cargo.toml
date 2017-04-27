@@ -1,0 +1,9 @@
+[package]
+name = "procmon"
+version = "0.1.0"
+authors = ["Najib Mestaoui <nmestaoui@fujikura-automotive.com>"]
+#comment = "based on 'process-iterator' by 'YoniKF'"
+
+[dependencies]
+winapi = "0.2"
+kernel32-sys = "0.2"
